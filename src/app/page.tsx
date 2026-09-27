@@ -1,181 +1,294 @@
-import Link from "next/link";
-import { ProductCard } from "@/components/ProductCard";
-import { CategoryCard } from "@/components/CategoryCard";
-import { getProducts } from "@/lib/sheets";
-import { TrendingUp, Sparkles, ShoppingBag } from "lucide-react";
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Eva's Trendify Hub | Discover Your Style. Live Trendy.</title>
+  <meta name="description" content="Curated premium products for modern lifestyles. Browse fashion, home, accessories, and daily deals." />
 
-// Category popularity ranking based on 2025-2026 search trends
-const CATEGORY_PRIORITY: Record<string, number> = {
-    // High Priority - Most Popular
-    "Fashion (Women & Kids)": 1,
-    "Fashion (Men)": 2,
-    "Fitness & Health": 3,
-    "Beauty & Personal Care": 4,
-    "Home & Garden": 5,
-    "Food & Drink": 6,
-    "Animals & Pets": 7,
-    "Computer & Internet": 8,
+  <!-- Google Analytics 4 (GA4) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-4T820CE8D3"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-4T820CE8D3');
+  </script>
+
+  <!-- Microsoft Clarity -->
+  <script type="text/javascript">
+      (function(c,l,a,r,i,t,y){
+          c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+          t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+          y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+      })(window, document, "clarity", "script", "yoobfo9827");
+  </script>
+
+  <!-- PapaParse for parsing Google Sheet CSV -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+  <!-- Google Fonts & Styling -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --primary-color: #a88548;
+      --primary-hover: #917138;
+      --text-dark: #2c2c2c;
+      --text-muted: #666666;
+      --bg-light: #fdfdfd;
+      --card-bg: #ffffff;
+      --border-color: #e2e8f0;
+      --badge-blue: #0066cc;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: var(--bg-light); color: var(--text-dark); line-height: 1.5; }
+
+    /* Top Navigation Header */
+    header { background: #fff; border-bottom: 1px solid var(--border-color); padding: 15px 5%; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; }
+    .brand { font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 700; text-decoration: none; color: var(--text-dark); display: flex; align-items: center; gap: 10px; }
+    .brand-logo-placeholder { width: 28px; height: 28px; background: #000; border-radius: 4px; }
     
-    // Medium Priority - Growing Niches
-    "Online Marketing & E-Business": 9,
-    "Personal Development": 10,
-    "Education": 11,
-    "Software": 12,
-    "Business & Investment": 13,
+    .nav-buttons { display: flex; gap: 10px; flex-wrap: wrap; }
+    .nav-btn { background: var(--primary-color); color: #fff; text-decoration: none; padding: 8px 16px; border-radius: 4px; font-size: 13px; font-weight: 600; transition: background 0.2s; }
+    .nav-btn:hover { background: var(--primary-hover); }
+
+    /* Hero Banner Overlay */
+    .hero { position: relative; height: 320px; background: url('https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=1600&q=80') center/cover no-repeat; display: flex; align-items: center; justify-content: center; text-align: center; color: #fff; padding: 20px; }
+    .hero::before { content: ""; position: absolute; inset: 0; background: rgba(0, 0, 0, 0.4); }
+    .hero-content { position: relative; z-index: 1; max-width: 800px; }
+    .hero-content h1 { font-family: 'Playfair Display', serif; font-size: 42px; font-weight: 700; margin-bottom: 8px; }
+    .hero-content p { font-size: 18px; font-weight: 400; opacity: 0.95; }
+
+    /* Intro & Search Area */
+    .intro-text { max-width: 800px; margin: 30px auto; text-align: center; color: var(--text-muted); font-size: 14px; padding: 0 20px; }
+    .search-container { max-width: 700px; margin: 0 auto 30px; padding: 0 20px; }
+    .search-input { width: 100%; padding: 12px 18px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 14px; outline: none; }
+    .search-input:focus { border-color: var(--primary-color); }
+
+    /* Main Section Layout */
+    .main-container { max-width: 1300px; margin: 0 auto; display: grid; grid-template-columns: 260px 1fr; gap: 30px; padding: 0 20px 50px; }
+
+    /* Sidebar Filters */
+    .sidebar { background: #fff; padding: 20px; border: 1px solid var(--border-color); border-radius: 8px; height: fit-content; }
+    .filter-group { margin-bottom: 25px; }
+    .filter-title { font-size: 14px; font-weight: 700; margin-bottom: 12px; display: flex; justify-content: space-between; }
+    .filter-list { list-style: none; display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: var(--text-muted); }
+    .filter-item { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+    .filter-item input { cursor: pointer; }
+
+    /* Product Grid */
+    .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; }
+    .product-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; transition: transform 0.2s, box-shadow 0.2s; }
+    .product-card:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(0,0,0,0.05); }
     
-    // Lower Priority - Niche Markets
-    "Coloring Books": 14,
-    "Fun & Games": 15,
-    "Canva Templates & Printables": 16,
-    "Hobby & Craft": 17,
-    "Custom Gifts": 18,
-    "Survival": 19,
-    "Dating & Romance": 20,
-    "Email Marketing": 21,
-};
-
-export default async function Home() {
-    const allProducts = await getProducts();
-    const trendingProducts = allProducts.slice(0, 8);
-
-    // Group products by category
-    const categories = Array.from(new Set(allProducts.map((p) => p.category)));
+    .card-img { width: 100%; height: 260px; object-fit: cover; background: #f0f0f0; }
+    .card-body { padding: 20px; display: flex; flex-direction: column; flex-grow: 1; }
+    .product-title { font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 700; margin-bottom: 10px; }
     
-    // Sort categories by popularity priority
-    const sortedCategories = categories.sort((a, b) => {
-        const priorityA = CATEGORY_PRIORITY[a] || 999;
-        const priorityB = CATEGORY_PRIORITY[b] || 999;
-        return priorityA - priorityB;
-    });
+    .sku-badge { font-size: 11px; color: var(--text-muted); margin-bottom: 6px; }
+    .deal-badge { display: inline-block; background: var(--badge-blue); color: #fff; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 4px; width: fit-content; margin-bottom: 10px; }
     
-    const groupedProducts = sortedCategories.reduce((acc, category) => {
-        acc[category] = allProducts.filter((p) => p.category === category);
-        return acc;
-    }, {} as Record<string, typeof allProducts>);
+    .product-desc { font-size: 13px; color: var(--text-muted); margin-bottom: 15px; flex-grow: 1; }
+    
+    .meta-row { font-size: 12px; display: flex; justify-content: space-between; margin-bottom: 6px; border-bottom: 1px dashed #f0f0f0; padding-bottom: 4px; }
+    .meta-label { color: var(--text-muted); }
+    .meta-val { font-weight: 600; text-align: right; }
 
-    // Select top 4 most popular categories for the visual cards
-    const topCategories = sortedCategories.slice(0, 4);
+    .price-row { margin: 15px 0; display: flex; align-items: baseline; gap: 8px; }
+    .old-price { text-decoration: line-through; color: var(--text-muted); font-size: 13px; }
+    .current-price { font-size: 20px; font-weight: 700; color: var(--text-dark); }
 
-    return (
-        <div className="flex flex-col min-h-screen">
-            {/* Hero Section */}
-            <section className="relative overflow-hidden min-h-[70vh] flex items-center">
-                {/* Background Image with Gradient Overlay */}
-                <div
-                    className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
-                    style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1483985988355-763728e1935b?q=80&w=2070&auto=format&fit=crop")' }}
-                />
-                {/* Dark Overlay with Gradient */}
-                <div className="absolute inset-0 z-10 bg-gradient-to-b from-black/60 via-black/50 to-black/80" />
+    .deal-btn { display: block; width: 100%; background: var(--primary-color); color: #fff; text-align: center; text-decoration: none; padding: 12px; border-radius: 6px; font-weight: 600; font-size: 14px; transition: background 0.2s; }
+    .deal-btn:hover { background: var(--primary-hover); }
 
-                <div className="container relative z-20 px-4 py-16 md:py-24 lg:py-32">
-                    <div className="flex flex-col items-center gap-6 text-center">
-                        {/* Badge */}
-                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20">
-                            <Sparkles className="w-4 h-4 text-pink-400" />
-                            <span className="text-sm font-medium text-white/90">Discover Trending Products</span>
-                        </div>
-                        
-                        <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl text-white drop-shadow-lg">
-                            Eva&apos;s <span className="gradient-text">Trendifying</span> Hub
-                        </h1>
-                        <p className="max-w-[42rem] leading-normal text-gray-200 sm:text-xl sm:leading-8 drop-shadow-md">
-                            Discover the latest multi-platform trends. From Fashion to Digital Products, we bring you the best from across the web.
-                        </p>
-                        
-                        {/* Stats */}
-                        <div className="flex flex-wrap items-center justify-center gap-6 py-4">
-                            <div className="flex items-center gap-2 text-white/80">
-                                <ShoppingBag className="w-5 h-5 text-violet-400" />
-                                <span className="font-semibold">{allProducts.length}+</span>
-                                <span className="text-sm">Products</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-white/80">
-                                <TrendingUp className="w-5 h-5 text-pink-400" />
-                                <span className="font-semibold">{categories.length}</span>
-                                <span className="text-sm">Categories</span>
-                            </div>
-                        </div>
-                        
-                        <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
-                            <Link
-                                href="/products"
-                                className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-violet-600 to-pink-500 px-8 py-3 text-sm font-medium text-white shadow-lg shadow-violet-500/25 transition-all hover:shadow-xl hover:shadow-violet-500/40 hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
-                            >
-                                Shop Now
-                            </Link>
-                            <Link
-                                href="/categories"
-                                className="inline-flex items-center justify-center rounded-full border-2 border-white/30 bg-white/10 backdrop-blur-sm px-8 py-3 text-sm font-medium text-white shadow-sm transition-all hover:bg-white/20 hover:border-white/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
-                            >
-                                Explore Categories
-                            </Link>
-                        </div>
-                    </div>
-                </div>
-            </section>
+    /* Footer */
+    footer { border-top: 1px solid var(--border-color); padding: 40px 20px; text-align: center; background: #fff; margin-top: 40px; }
+    footer h3 { font-family: 'Playfair Display', serif; font-size: 22px; margin-bottom: 10px; }
+    footer p { font-size: 13px; color: var(--text-muted); max-width: 700px; margin: 0 auto 15px; }
 
-            {/* Top Categories Section */}
-            <section className="container px-4 py-12 md:py-16">
-                <div className="flex items-center justify-between mb-8">
-                    <div>
-                        <h2 className="text-2xl md:text-3xl font-bold tracking-tight gradient-text">
-                            Popular Categories
-                        </h2>
-                        <p className="text-muted-foreground mt-1">
-                            Most searched categories this season
-                        </p>
-                    </div>
-                    <Link
-                        href="/categories"
-                        className="text-sm font-medium text-violet-400 hover:text-pink-400 transition-colors"
-                    >
-                        View All →
-                    </Link>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    {topCategories.map((category) => (
-                        <CategoryCard
-                            key={category}
-                            category={category}
-                            products={groupedProducts[category]}
-                            featured
-                        />
-                    ))}
-                </div>
-            </section>
+    @media (max-width: 768px) {
+      .main-container { grid-template-columns: 1fr; }
+      .hero-content h1 { font-size: 28px; }
+    }
+  </style>
+</head>
+<body>
 
-            {/* Trending Now Section */}
-            <section id="trending" className="container px-4 py-12 md:py-24">
-                <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
-                    <div className="text-center md:text-left">
-                        <div className="flex items-center gap-2 mb-2">
-                            <TrendingUp className="w-5 h-5 text-pink-400" />
-                            <h2 className="text-3xl font-bold tracking-tight">Trending Now</h2>
-                        </div>
-                        <p className="text-muted-foreground">The most popular items this week.</p>
-                    </div>
-                    <Link
-                        href="/products"
-                        className="text-violet-400 hover:text-pink-400 transition-colors font-medium"
-                    >
-                        View All Products →
-                    </Link>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                    {trendingProducts.map((product) => (
-                        <ProductCard key={product.id} product={product} />
-                    ))}
-                </div>
-                <div className="mt-12 text-center md:hidden">
-                    <Link
-                        href="/products"
-                        className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-violet-600 to-pink-500 px-8 py-3 text-sm font-medium text-white shadow-lg shadow-violet-500/25 transition-all hover:shadow-xl"
-                    >
-                        View All {allProducts.length} Products
-                    </Link>
-                </div>
-            </section>
+  <!-- Header Navigation -->
+  <header>
+    <a href="#" class="brand">
+      <div class="brand-logo-placeholder"></div>
+      Eva's Trendify Hub
+    </a>
+    <div class="nav-buttons">
+      <a href="#about" class="nav-btn">About Eva's Trendify Hub</a>
+      <a href="#shop" class="nav-btn">Shop by Category</a>
+      <a href="#disclosure" class="nav-btn">Affiliate Disclosure</a>
+      <a href="#contact" class="nav-btn">Contact Us</a>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="hero-content">
+      <h1>Discover Your Style. Live Trendy.</h1>
+      <p>Curated premium products for modern lifestyles</p>
+    </div>
+  </section>
+
+  <!-- Intro Text -->
+  <div class="intro-text">
+    Welcome to Eva's Trendify Hub, your destination for discovering stylish, practical, and elevated finds from across the web. Browse a thoughtfully curated collection spanning fashion, home, pets, and more—then click to shop directly through our trusted affiliate partners.
+  </div>
+
+  <!-- Search Bar -->
+  <div class="search-container">
+    <input type="text" id="searchInput" class="search-input" placeholder="What are you looking for?" onkeyup="filterProducts()" />
+  </div>
+
+  <!-- Main Content Layout -->
+  <div class="main-container">
+    <!-- Sidebar Filters -->
+    <aside class="sidebar">
+      <div class="filter-group">
+        <div class="filter-title">Category</div>
+        <div class="filter-list" id="categoryFilters">
+          <label class="filter-item"><input type="checkbox" value="Fashion" onchange="filterProducts()"> Fashion</label>
+          <label class="filter-item"><input type="checkbox" value="Home & Garden" onchange="filterProducts()"> Home & Garden</label>
+          <label class="filter-item"><input type="checkbox" value="Animals & Pets" onchange="filterProducts()"> Animals & Pets</label>
+          <label class="filter-item"><input type="checkbox" value="Coloring Books" onchange="filterProducts()"> Coloring Books</label>
         </div>
-    );
-}
+      </div>
+
+      <div class="filter-group">
+        <div class="filter-title">Brand</div>
+        <div class="filter-list" id="brandFilters">
+          <label class="filter-item"><input type="checkbox" value="Atelier North" onchange="filterProducts()"> Atelier North</label>
+          <label class="filter-item"><input type="checkbox" value="Haven Form" onchange="filterProducts()"> Haven Form</label>
+          <label class="filter-item"><input type="checkbox" value="Luna Edit" onchange="filterProducts()"> Luna Edit</label>
+          <label class="filter-item"><input type="checkbox" value="Meridian & Co." onchange="filterProducts()"> Meridian & Co.</label>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Product Grid Area -->
+    <main>
+      <div class="product-grid" id="productGrid">
+        <p style="grid-column: 1/-1; text-align: center; color: #666;">Loading products...</p>
+      </div>
+    </main>
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <h3>Find your next favorite thing</h3>
+    <p>From everyday essentials to statement-making discoveries, Eva's Trendify Hub makes it easy to browse curated products. Click <strong>View Deal</strong> when you find the perfect match.</p>
+    <p>© 2026 Eva's Trendify Hub. Curated product recommendations for modern living. Some links may be affiliate links, which means we may earn a commission at no additional cost to you.</p>
+  </footer>
+
+  <!-- Script to Dynamically Fetch and Render Google Sheet Data -->
+  <script>
+    const GOOGLE_SHEET_CSV = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTRwF_Hm6KeFkamiWx4Dt2eYhsbwQE_a5LNrGArfY7p_q5tDi8wnmzDiWsXs6jc2BhGxnI_HiUBPW7M/pub?output=csv';
+
+    let products = [];
+
+    function loadGoogleSheetData() {
+      Papa.parse(GOOGLE_SHEET_CSV, {
+        download: true,
+        header: true,
+        skipEmptyLines: true,
+        complete: function(results) {
+          products = results.data.map(row => ({
+            sku: row['SKU'] || row['sku'] || '',
+            name: row['Name'] || row['name'] || row['Product Name'] || '',
+            dealBadge: row['Deal Badge'] || row['dealBadge'] || row['Badge'] || '',
+            description: row['Description'] || row['description'] || '',
+            brand: row['Brand'] || row['brand'] || '',
+            productType: row['Product Type'] || row['productType'] || '',
+            keyFeatures: row['Key Features'] || row['keyFeatures'] || '',
+            targetAudience: row['Target Audience'] || row['targetAudience'] || '',
+            rating: row['Rating'] || row['rating'] || '',
+            reviewCount: row['Review Count'] || row['reviewCount'] || '',
+            oldPrice: row['Old Price'] || row['oldPrice'] || '',
+            price: row['Price'] || row['price'] || '',
+            image: row['Image'] || row['image'] || row['Image URL'] || '',
+            affiliateLink: row['Affiliate Link'] || row['affiliateLink'] || row['Link'] || '#',
+            category: row['Category'] || row['category'] || ''
+          }));
+
+          renderProducts(products);
+        },
+        error: function(err) {
+          console.error("Error fetching Google Sheet CSV:", err);
+          document.getElementById('productGrid').innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: red;">Failed to load products from Google Sheet.</p>';
+        }
+      });
+    }
+
+    function renderProducts(items) {
+      const grid = document.getElementById('productGrid');
+      grid.innerHTML = '';
+
+      if (!items || items.length === 0) {
+        grid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: #666;">No products found.</p>';
+        return;
+      }
+
+      items.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'product-card';
+        card.innerHTML = `
+          <img src="${item.image || 'https://via.placeholder.com/300'}" alt="${item.name}" class="card-img" />
+          <div class="card-body">
+            <div class="product-title">${item.name}</div>
+            ${item.sku ? `<div class="sku-badge">${item.sku}</div>` : ''}
+            ${item.dealBadge ? `<div class="deal-badge">${item.dealBadge}</div>` : ''}
+            <div class="product-desc">${item.description}</div>
+            
+            ${item.brand ? `<div class="meta-row"><span class="meta-label">Brand:</span><span class="meta-val">${item.brand}</span></div>` : ''}
+            ${item.productType ? `<div class="meta-row"><span class="meta-label">Product Type:</span><span class="meta-val">${item.productType}</span></div>` : ''}
+            ${item.keyFeatures ? `<div class="meta-row"><span class="meta-label">Key Features:</span><span class="meta-val">${item.keyFeatures}</span></div>` : ''}
+            ${item.targetAudience ? `<div class="meta-row"><span class="meta-label">Target Audience:</span><span class="meta-val">${item.targetAudience}</span></div>` : ''}
+            ${item.rating ? `<div class="meta-row"><span class="meta-label">Rating:</span><span class="meta-val">${item.rating}</span></div>` : ''}
+            ${item.reviewCount ? `<div class="meta-row"><span class="meta-label">Review Count:</span><span class="meta-val">${item.reviewCount}</span></div>` : ''}
+
+            <div class="price-row">
+              ${item.oldPrice ? `<span class="old-price">${item.oldPrice}</span>` : ''}
+              <span class="current-price">${item.price}</span>
+            </div>
+
+            <a href="${item.affiliateLink}" target="_blank" rel="noopener noreferrer" class="deal-btn">View Deal</a>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    function filterProducts() {
+      const query = document.getElementById('searchInput').value.toLowerCase();
+      const selectedCategories = Array.from(document.querySelectorAll('#categoryFilters input:checked')).map(cb => cb.value);
+      const selectedBrands = Array.from(document.querySelectorAll('#brandFilters input:checked')).map(cb => cb.value);
+
+      const filtered = products.filter(item => {
+        const matchesQuery = (item.name && item.name.toLowerCase().includes(query)) ||
+                             (item.description && item.description.toLowerCase().includes(query)) ||
+                             (item.sku && item.sku.toLowerCase().includes(query));
+
+        const matchesCategory = selectedCategories.length === 0 || selectedCategories.includes(item.category);
+        const matchesBrand = selectedBrands.length === 0 || selectedBrands.includes(item.brand);
+
+        return matchesQuery && matchesCategory && matchesBrand;
+      });
+
+      renderProducts(filtered);
+    }
+
+    // Initialize fetch
+    loadGoogleSheetData();
+  </script>
+</body>
+</html>
