@@ -171,7 +171,7 @@ export default function Home() {
             </div>
 
             <div>
-              <div style={{ fontSize: '14px', fontWeight 700, marginBottom: '12px' }}>Brand</div>
+              <div style={{ fontSize: '14px', fontWeight: 700, marginBottom: '12px' }}>Brand</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '13px', color: '#666' }}>
                 {['Atelier North', 'Haven Form', 'Luna Edit', 'Meridian & Co.'].map((brand) => (
                   <label key={brand} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
@@ -192,7 +192,7 @@ export default function Home() {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '25px' }}>
                 {filteredProducts.map((item, idx) => (
                   <div key={idx} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                    <img src={item.image || 'https://via.placeholder.com/300'} alt={item.name} style={{ width: '100%', height: '260px', objectFit: 'cover', background: '#f0f0f0' }} />
+                    <img src={item.image || 'https://via.placeholder.com/300'} alt={item.name} style={{ width: '100%', height: '260px', objectFit: 'contain', padding: '10px', background: '#f8f9fa' }} />
                     <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
                       <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '20px', fontWeight: 700, marginBottom: '10px' }}>{item.name}</div>
                       {item.sku && <div style={{ fontSize: '11px', color: '#666', marginBottom: '6px' }}>{item.sku}</div>}
